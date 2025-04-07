@@ -29,6 +29,7 @@ const Navbar = () => {
     setIsOpen(false);
   };
 
+  // Update the navLinks array in your Navbar component
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'About', path: '/about' },

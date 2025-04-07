@@ -1,15 +1,48 @@
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faServer, 
   faShield, 
   faGaugeHigh, 
-  faHeadset,
+  faHeadset, 
   faGamepad,
-  faChevronRight
+  faGlobe,
+  faDatabase,
 } from '@fortawesome/free-solid-svg-icons';
 
 const Services = () => {
+  const [activeTab, setActiveTab] = useState('web');
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [subscriptionLength, setSubscriptionLength] = useState(48);
+
+  // Fetch services from Django backend
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`http://localhost:8000/api/services/?type=${activeTab}`);
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        setServices(data);
+        setLoading(false);
+      } catch (error) {
+        setError('Failed to fetch services: ' + error.message);
+        setLoading(false);
+      }
+    };
+    
+    fetchServices();
+  }, [activeTab]);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setLoading(true);
+  };
+
   return (
     <>
       {/* Hero Section */}
@@ -21,148 +54,188 @@ const Services = () => {
         <div className="container relative z-10">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6 pt-14">
-            Server<span className="gradient-text"> Hosting</span>
+              Our <span className="gradient-text">Services</span>
             </h1>
             <p className="text-xl text-gray-300">
-              The fastest and most reliable hosting for your servers, with premium hardware, DDoS protection, and 24/7 support.
+              Get online fast at an unbeatable price
+            </p>
+            <p className="text-gray-400 mt-4">
+              Choose from a wide variety of services and plans to grow your idea online.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Pricing Plans */}
-      <section className="section bg-dark relative overflow-hidden">
-        <div className="container relative z-10">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Server <span className="gradient-text">Plans</span></h2>
-            <p className="text-gray-400 max-w-2xl mx-auto">
-              Choose the perfect plan for your needs. All plans include DDoS protection, 24/7 support, and instant setup.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {/* Basic Plan */}
-            <div className="pricing-card bg-dark-lighter/50 backdrop-blur-sm rounded-2xl overflow-hidden shadow-lg border border-gray-800 hover:border-primary/30 transition-all duration-300 hover:translate-y-[-5px]">
-              <div className="text-center p-6 border-b border-gray-700/50">
-                <h3 className="text-2xl font-bold mb-2">Basic Hosting</h3>
-                <div className="mt-4">
-                  <span className="text-5xl font-bold">$4.99</span>
-                  <span className="text-gray-400 ml-1">Monthly</span>
-                </div>
-              </div>
-              
-              <div className="p-6">
-                <ul className="space-y-3">
-                  <li className="flex items-center text-gray-300">
-                    <span className="text-primary mr-2 text-lg">✓</span> 10 GB storage
-                  </li>
-                  <li className="flex items-center text-gray-300">
-                    <span className="text-primary mr-2 text-lg">✓</span> 1 website
-                  </li>
-                  <li className="flex items-center text-gray-300">
-                    <span className="text-primary mr-2 text-lg">✓</span> Unlimited bandwidth
-                  </li>
-                  <li className="flex items-center text-gray-300">
-                    <span className="text-primary mr-2 text-lg">✓</span> Basic customer support
-                  </li>
-                </ul>
-                
-                <Link to="/contact" className="btn btn-outline hover:btn-primary w-full text-center mt-8 py-3 transition-all duration-300">
-                  Get Plan
-                </Link>
-              </div>
-            </div>
-            
-            {/* Business Plan - Featured */}
-            <div className="pricing-card bg-gradient-to-b from-primary/20 to-blue-900/20 backdrop-blur-sm rounded-2xl overflow-hidden shadow-2xl border border-primary/30 transform scale-105 relative">
-              <div className="absolute -right-8 top-6 bg-gradient-to-r from-primary to-blue-600 text-white text-xs font-bold py-1 px-8 shadow-lg rotate-45">
-                Most Popular
-              </div>
-              <div className="text-center p-6 border-b border-gray-700/50">
-                <h3 className="text-2xl font-bold mb-2">Business Hosting</h3>
-                <div className="mt-4">
-                  <span className="text-5xl font-bold">$9.99</span>
-                  <span className="text-gray-400 ml-1">Monthly</span>
-                </div>
-              </div>
-              
-              <div className="p-6">
-                <ul className="space-y-3">
-                  <li className="flex items-center text-gray-300">
-                    <span className="text-primary mr-2 text-lg">✓</span> 50 GB storage
-                  </li>
-                  <li className="flex items-center text-gray-300">
-                    <span className="text-primary mr-2 text-lg">✓</span> 5 websites
-                  </li>
-                  <li className="flex items-center text-gray-300">
-                    <span className="text-primary mr-2 text-lg">✓</span> Unlimited bandwidth
-                  </li>
-                  <li className="flex items-center text-gray-300">
-                    <span className="text-primary mr-2 text-lg">✓</span> Priority customer support
-                  </li>
-                  <li className="flex items-center text-gray-300">
-                    <span className="text-primary mr-2 text-lg">✓</span> SSL certificate included
-                  </li>
-                </ul>
-                
-                <Link to="/contact" className="btn btn-primary w-full text-center mt-8 py-3 shadow-lg shadow-primary/20">
-                  Get Plan
-                </Link>
-              </div>
-            </div>
-            
-            {/* Pro Plan */}
-            <div className="pricing-card bg-dark-lighter/50 backdrop-blur-sm rounded-2xl overflow-hidden shadow-lg border border-gray-800 hover:border-primary/30 transition-all duration-300 hover:translate-y-[-5px]">
-              <div className="text-center p-6 border-b border-gray-700/50">
-                <h3 className="text-2xl font-bold mb-2">Pro Hosting</h3>
-                <div className="mt-4">
-                  <span className="text-5xl font-bold">$19.99</span>
-                  <span className="text-gray-400 ml-1">Monthly</span>
-                </div>
-              </div>
-              
-              <div className="p-6">
-                <ul className="space-y-3">
-                  <li className="flex items-center text-gray-300">
-                    <span className="text-primary mr-2 text-lg">✓</span> Unlimited storage
-                  </li>
-                  <li className="flex items-center text-gray-300">
-                    <span className="text-primary mr-2 text-lg">✓</span> Unlimited websites
-                  </li>
-                  <li className="flex items-center text-gray-300">
-                    <span className="text-primary mr-2 text-lg">✓</span> Unlimited bandwidth
-                  </li>
-                  <li className="flex items-center text-gray-300">
-                    <span className="text-primary mr-2 text-lg">✓</span> Premium customer support
-                  </li>
-                  <li className="flex items-center text-gray-300">
-                    <span className="text-primary mr-2 text-lg">✓</span> Enhanced security features
-                  </li>
-                  <li className="flex items-center text-gray-300">
-                    <span className="text-primary mr-2 text-lg">✓</span> Free domain name registration
-                  </li>
-                </ul>
-                
-                <Link to="/contact" className="btn btn-outline hover:btn-primary w-full text-center mt-8 py-3 transition-all duration-300">
-                  Get Plan
-                </Link>
-              </div>
+      {/* Services Tabs */}
+      <section className="section bg-dark">
+        <div className="container">
+          {/* Tabs */}
+          <div className="flex justify-center mb-12">
+            <div className="inline-flex bg-dark-lighter rounded-lg p-1">
+              <button 
+                className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                  activeTab === 'web' 
+                    ? 'bg-primary text-white' 
+                    : 'text-gray-400 hover:text-white'
+                }`}
+                onClick={() => handleTabChange('web')}
+              >
+                <FontAwesomeIcon icon={faGlobe} className="mr-2" />
+                Web Hosting
+              </button>
+              <button 
+                className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                  activeTab === 'game' 
+                    ? 'bg-primary text-white' 
+                    : 'text-gray-400 hover:text-white'
+                }`}
+                onClick={() => handleTabChange('game')}
+              >
+                <FontAwesomeIcon icon={faGamepad} className="mr-2" />
+                Game Hosting
+              </button>
             </div>
           </div>
+
+          {/* Subscription Length Dropdown */}
+          <div className="mb-12">
+            <div className="max-w-md mx-auto">
+              <label className="block text-gray-400 mb-2">Length of subscription</label>
+              <select 
+                className="w-full bg-dark-lighter border border-gray-700 rounded px-4 py-3 text-white"
+                onChange={(e) => setSubscriptionLength(parseInt(e.target.value))}
+                value={subscriptionLength}
+              >
+                <option value="48">48-months</option>
+                <option value="24">24-months</option>
+                <option value="12">12-months</option>
+                <option value="1">1-month</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Loading and Error States */}
+          {loading && (
+            <div className="text-center py-20">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+              <p className="mt-4 text-gray-400">Loading services...</p>
+            </div>
+          )}
+
+          {error && (
+            <div className="text-center py-20">
+              <div className="bg-red-500/20 text-red-400 p-4 rounded-lg max-w-lg mx-auto">
+                <p>{error}</p>
+                <button 
+                  className="mt-4 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg transition-colors"
+                  onClick={() => handleTabChange(activeTab)}
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Services Grid */}
+          {!loading && !error && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {services.map((service) => (
+                <div 
+                  key={service.id} 
+                  className={`card relative overflow-hidden ${service.popular ? 'border-2 border-primary' : ''}`}
+                >
+                  {service.popular && (
+                    <div className="absolute top-0 left-0 right-0 bg-primary text-white text-center py-1 text-sm font-medium">
+                      MOST POPULAR
+                    </div>
+                  )}
+                  <div className="p-6 pt-8">
+                    <h3 className="text-xl font-bold mb-1">{service.name}</h3>
+                    <p className="text-gray-400 text-sm mb-4">{service.description}</p>
+                    
+                    <div className="mb-4">
+                      {service.original_price && (
+                        <div className="flex items-center">
+                          <span className="text-gray-400 line-through text-sm">
+                            {service.type === 'web' ? '₹' : '$'}{service.original_price.toFixed(2)}
+                          </span>
+                          <span className="ml-2 bg-blue-500/20 text-blue-400 text-xs font-medium px-2 py-1 rounded">
+                            SAVE {subscriptionLength === 48 ? service.discount_48_month : 
+                                  subscriptionLength === 24 ? service.discount_24_month : 
+                                  subscriptionLength === 12 ? service.discount_12_month : 0}%
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex items-baseline mt-1">
+                        <span className="text-3xl font-bold">
+                          {service.type === 'web' ? '₹' : '$'}
+                          {subscriptionLength === 48 ? service.price_48_month.toFixed(2) :
+                           subscriptionLength === 24 ? service.price_24_month.toFixed(2) :
+                           subscriptionLength === 12 ? service.price_12_month.toFixed(2) :
+                           service.price_1_month.toFixed(2)}
+                        </span>
+                        <span className="text-gray-400 text-sm ml-1">/mo</span>
+                      </div>
+                      {subscriptionLength > 1 && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          {service.type === 'web' ? '+3 months free' : 
+                           `Save ${subscriptionLength === 48 ? service.discount_48_month : 
+                                  subscriptionLength === 24 ? service.discount_24_month : 
+                                  service.discount_12_month}%`}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <button className="btn btn-primary w-full mb-4">
+                      Choose plan
+                    </button>
+                    
+                    <ul className="space-y-2">
+                      {service.features.map((featureObj) => (
+                        <li key={featureObj.id} className="flex items-start">
+                          <svg className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                          </svg>
+                          <span className="text-gray-300 text-sm">{featureObj.feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* No Services Found */}
+          {!loading && !error && services.length === 0 && (
+            <div className="text-center py-20">
+              <p className="text-gray-400">No services found for this category.</p>
+            </div>
+          )}
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="section bg-dark">
+      <section className="section bg-dark-lighter">
         <div className="container">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Server <span className="gradient-text">Features</span></h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Choose <span className="gradient-text">Floor Hosting</span></h2>
             <p className="text-gray-400 max-w-2xl mx-auto">
-              All our Server servers come with these premium features to ensure the best gaming experience.
+              We provide the best hosting experience with premium hardware and exceptional support.
             </p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="card text-center">
+              <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FontAwesomeIcon icon={faServer} className="text-primary text-2xl" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Premium Hardware</h3>
+              <p className="text-gray-400">
+                All our servers run on high-performance CPUs and NVMe SSDs for lightning-fast performance.
+              </p>
+            </div>
+            
             <div className="card text-center">
               <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FontAwesomeIcon icon={faShield} className="text-primary text-2xl" />
@@ -190,6 +263,26 @@ const Services = () => {
               <h3 className="text-xl font-bold mb-2">24/7 Support</h3>
               <p className="text-gray-400">
                 Our team is available around the clock to assist with any issues.
+              </p>
+            </div>
+            
+            <div className="card text-center">
+              <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FontAwesomeIcon icon={faDatabase} className="text-primary text-2xl" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Daily Backups</h3>
+              <p className="text-gray-400">
+                Automatic daily backups ensure your data is always safe and recoverable.
+              </p>
+            </div>
+            
+            <div className="card text-center">
+              <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FontAwesomeIcon icon={faServer} className="text-primary text-2xl" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Instant Setup</h3>
+              <p className="text-gray-400">
+                Your server is deployed instantly after payment, so you can start right away.
               </p>
             </div>
           </div>
