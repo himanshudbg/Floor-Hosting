@@ -48,7 +48,6 @@ wheels/
 MANIFEST
 
 # Django Environment
-.env
 .venv
 env/
 venv/
