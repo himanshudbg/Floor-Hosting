@@ -21,8 +21,12 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-^h!l9hujuz5f*==kgukc$6azsw
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',') if os.getenv('ALLOWED_HOSTS') else []
+ALLOWED_HOSTS = ['floorhost.kleverup.me', 'localhost', '127.0.0.1']
 
+try:
+    from .settings_override import *
+except ImportError:
+    pass
 
 # Application definition
 
