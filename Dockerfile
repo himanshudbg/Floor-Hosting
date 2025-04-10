@@ -51,7 +51,7 @@ RUN echo "from pathlib import Path\nBASE_DIR = Path('/app/backend')\nTEMPLATES =
 # Configure nginx
 RUN echo 'server { \
     listen 80 default_server; \
-    server_name floorhost.kleverup.me; \
+    server_name localhost; \
     \
     location /assets/ { \
         alias /app/dist/assets/; \
