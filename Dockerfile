@@ -42,20 +42,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy Django backend
 COPY backend/ ./backend/
 
-# Copy built React app from frontend-build stage
-COPY --from=frontend-build /app/dist ./dist/
-
-# Configure Django settings
-RUN echo "from pathlib import Path\nBASE_DIR = Path('/app/backend')\nTEMPLATES = [{'BACKEND': 'django.template.backends.django.DjangoTemplates', 'DIRS': [Path('/app/dist')], 'APP_DIRS': True, 'OPTIONS': {'context_processors': ['django.template.context_processors.debug', 'django.template.context_processors.request', 'django.contrib.auth.context_processors.auth', 'django.contrib.messages.context_processors.messages']}}]\nSTATICFILES_DIRS = [Path('/app/dist/assets')]\nSTATIC_URL = '/assets/'" >> /app/backend/floorhosting/settings_override.py
-
-# Configure nginx
+# Configure nginx for API only
 RUN echo 'server { \
     listen 80 default_server; \
     server_name localhost; \
-    \
-    location /assets/ { \
-        alias /app/dist/assets/; \
-    } \
     \
     location /admin/ { \
         proxy_pass http://127.0.0.1:8000; \
@@ -78,22 +68,11 @@ RUN echo 'server { \
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; \
         proxy_set_header X-Forwarded-Proto $scheme; \
     } \
-    \
-    location /static/ { \
-        alias /app/backend/static/; \
-    } \
-    \
-    location / { \
-        try_files $uri $uri/ /index.html; \
-        root /app/dist; \
-        index index.html; \
-    } \
 }' > /etc/nginx/conf.d/default.conf
 
-# Create startup script with better process management
+# Create startup script
 RUN echo '#!/bin/bash\n\
 cd /app/backend\n\
-python manage.py collectstatic --noinput\n\
 python manage.py migrate --noinput\n\
 gunicorn floorhosting.wsgi:application --bind 127.0.0.1:8000 --workers 3 --timeout 120 --daemon\n\
 nginx -g "daemon off;"\n\
