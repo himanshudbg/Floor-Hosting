@@ -1,4 +1,5 @@
 from django.db import models
+from decimal import Decimal
 
 class Service(models.Model):
     TYPE_CHOICES = (
@@ -29,14 +30,14 @@ class Service(models.Model):
         if months == 1:
             return self.base_price
         elif months == 12:
-            discount = self.discount_12_month / 100
-            return self.base_price * (1 - discount)
+            discount = Decimal(self.discount_12_month) / Decimal('100')
+            return self.base_price * (Decimal('1') - discount)
         elif months == 24:
-            discount = self.discount_24_month / 100
-            return self.base_price * (1 - discount)
+            discount = Decimal(self.discount_24_month) / Decimal('100')
+            return self.base_price * (Decimal('1') - discount)
         elif months == 48:
-            discount = self.discount_48_month / 100
-            return self.base_price * (1 - discount)
+            discount = Decimal(self.discount_48_month) / Decimal('100')
+            return self.base_price * (Decimal('1') - discount)
         return self.base_price  # Default to base price
 
 class ServiceFeature(models.Model):

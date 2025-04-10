@@ -1,12 +1,13 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin, TabularInline
 from .models import Service, ServiceFeature
 
-class ServiceFeatureInline(admin.TabularInline):
+class ServiceFeatureInline(TabularInline):
     model = ServiceFeature
     extra = 3
 
 @admin.register(Service)
-class ServiceAdmin(admin.ModelAdmin):
+class ServiceAdmin(ModelAdmin):
     list_display = ('name', 'type', 'base_price', 'popular', 'created_at')
     list_filter = ('type', 'popular')
     search_fields = ('name', 'description')

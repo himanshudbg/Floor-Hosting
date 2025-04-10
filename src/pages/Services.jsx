@@ -16,32 +16,69 @@ const Services = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [subscriptionLength, setSubscriptionLength] = useState(48);
-
+  
+  // Get API URL from environment variables
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  
   // Fetch services from Django backend
   useEffect(() => {
     const fetchServices = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:8000/api/services/?type=${activeTab}`);
+        setError(null); // Clear previous errors
+        
+        console.log(`Fetching services from: ${API_BASE_URL}/services/?type=${activeTab}`);
+        
+        const response = await fetch(`${API_BASE_URL}/services/?type=${activeTab}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        console.log('Response status:', response.status);
+        
         if (!response.ok) {
-          throw new Error('Network response was not ok');
+          const errorText = await response.text();
+          console.error('Error response:', errorText);
+          throw new Error(`Network response was not ok (${response.status}): ${errorText}`);
         }
+        
         const data = await response.json();
+        console.log('Fetched data:', data);
+        
+        // Check if data is an array
+        if (!Array.isArray(data)) {
+          console.error('Expected array but got:', typeof data);
+          throw new Error('Invalid data format received from server');
+        }
+        
         setServices(data);
         setLoading(false);
       } catch (error) {
+        console.error('Fetch error:', error);
         setError('Failed to fetch services: ' + error.message);
         setLoading(false);
       }
     };
     
     fetchServices();
-  }, [activeTab]);
+  }, [activeTab, API_BASE_URL]);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setLoading(true);
   };
+
+  // Debug output to help identify issues
+  console.log('Current state:', { 
+    activeTab, 
+    loading, 
+    error, 
+    servicesCount: services?.length,
+    services
+  });
 
   return (
     <>
@@ -138,71 +175,103 @@ const Services = () => {
 
           {/* Services Grid */}
           {!loading && !error && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {services.map((service) => (
-                <div 
-                  key={service.id} 
-                  className={`card relative overflow-hidden ${service.popular ? 'border-2 border-primary' : ''}`}
-                >
-                  {service.popular && (
-                    <div className="absolute top-0 left-0 right-0 bg-primary text-white text-center py-1 text-sm font-medium">
-                      MOST POPULAR
-                    </div>
-                  )}
-                  <div className="p-6 pt-8">
-                    <h3 className="text-xl font-bold mb-1">{service.name}</h3>
-                    <p className="text-gray-400 text-sm mb-4">{service.description}</p>
+            <div className="flex justify-center w-full overflow-x-auto">
+              <div className={`flex flex-nowrap gap-6 py-4 min-w-max`}>
+                {Array.isArray(services) && services.length > 0 ? (
+                  services.map((service) => {
+                    // Add validation to ensure service has all required properties
+                    if (!service || !service.id) {
+                      console.error('Invalid service object:', service);
+                      return null;
+                    }
                     
-                    <div className="mb-4">
-                      {service.original_price && (
-                        <div className="flex items-center">
-                          <span className="text-gray-400 line-through text-sm">
-                            {service.type === 'web' ? '₹' : '$'}{service.original_price.toFixed(2)}
-                          </span>
-                          <span className="ml-2 bg-blue-500/20 text-blue-400 text-xs font-medium px-2 py-1 rounded">
-                            SAVE {subscriptionLength === 48 ? service.discount_48_month : 
-                                  subscriptionLength === 24 ? service.discount_24_month : 
-                                  subscriptionLength === 12 ? service.discount_12_month : 0}%
-                          </span>
+                    return (
+                      <div 
+                        key={service.id} 
+                        className={`card relative overflow-hidden w-[350px] flex-shrink-0 bg-white bg-opacity-5 rounded-lg ${service.popular ? 'border-2 border-primary' : 'border border-gray-700'}`}
+                      >
+                        {service.popular && (
+                          <div className="absolute top-0 left-0 right-0 bg-primary text-white text-center py-1 text-sm font-medium">
+                            MOST POPULAR
+                          </div>
+                        )}
+                        <div className="p-6 pt-8">
+                          <h3 className="text-xl font-bold mb-1">{service.name}</h3>
+                          
+                          <div className="mb-6">
+                            {service.original_price && (
+                              <div className="flex items-center">
+                                <span className="text-gray-400 line-through text-sm">
+                                  ${typeof service.original_price === 'number' ? 
+                                    service.original_price.toFixed(2) : service.original_price}
+                                </span>
+                                <span className="ml-2 bg-blue-500/20 text-blue-400 text-xs font-medium px-2 py-1 rounded">
+                                  SAVE {subscriptionLength === 48 ? service.discount_48_month : 
+                                        subscriptionLength === 24 ? service.discount_24_month : 
+                                        subscriptionLength === 12 ? service.discount_12_month : 0}%
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex items-baseline mt-2">
+                              <span className="text-3xl font-bold">
+                                $
+                                {subscriptionLength === 48 && service.price_48_month ? 
+                                  (typeof service.price_48_month === 'number' ? 
+                                    service.price_48_month.toFixed(2) : service.price_48_month) :
+                                 // Rest of price calculation remains the same
+                               subscriptionLength === 24 && service.price_24_month ? 
+                                (typeof service.price_24_month === 'number' ? 
+                                  service.price_24_month.toFixed(2) : service.price_24_month) :
+                               subscriptionLength === 12 && service.price_12_month ? 
+                                (typeof service.price_12_month === 'number' ? 
+                                  service.price_12_month.toFixed(2) : service.price_12_month) :
+                               service.price_1_month ? 
+                                (typeof service.price_1_month === 'number' ? 
+                                  service.price_1_month.toFixed(2) : service.price_1_month) : 
+                               '0.00'}
+                            </span>
+                            <span className="text-gray-400 text-sm ml-1">/mo</span>
+                          </div>
+                          {subscriptionLength > 1 && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {service.type === 'web' ? '+3 months free' : 
+                               `Save ${subscriptionLength === 48 ? service.discount_48_month : 
+                                      subscriptionLength === 24 ? service.discount_24_month : 
+                                      service.discount_12_month}%`}
+                            </div>
+                          )}
                         </div>
-                      )}
-                      <div className="flex items-baseline mt-1">
-                        <span className="text-3xl font-bold">
-                          {service.type === 'web' ? '₹' : '$'}
-                          {subscriptionLength === 48 ? service.price_48_month.toFixed(2) :
-                           subscriptionLength === 24 ? service.price_24_month.toFixed(2) :
-                           subscriptionLength === 12 ? service.price_12_month.toFixed(2) :
-                           service.price_1_month.toFixed(2)}
-                        </span>
-                        <span className="text-gray-400 text-sm ml-1">/mo</span>
+                        
+                        <button className="btn btn-primary w-full mb-4">
+                          Choose plan
+                        </button>
+                        <p className="text-gray-400 text-sm mb-6">{service.description}</p>
+                        <div className="border-t border-gray-700 my-8"></div>
+                        
+                        <ul className="space-y-2">
+                          {Array.isArray(service.features) ? (
+                            service.features.map((featureObj) => (
+                              <li key={featureObj.id} className="flex items-start">
+                                <svg className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                <span className="text-gray-300 text-sm">{featureObj.feature}</span>
+                              </li>
+                            ))
+                          ) : (
+                            <li className="text-gray-400">No features available</li>
+                          )}
+                        </ul>
                       </div>
-                      {subscriptionLength > 1 && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          {service.type === 'web' ? '+3 months free' : 
-                           `Save ${subscriptionLength === 48 ? service.discount_48_month : 
-                                  subscriptionLength === 24 ? service.discount_24_month : 
-                                  service.discount_12_month}%`}
-                        </div>
-                      )}
-                    </div>
-                    
-                    <button className="btn btn-primary w-full mb-4">
-                      Choose plan
-                    </button>
-                    
-                    <ul className="space-y-2">
-                      {service.features.map((featureObj) => (
-                        <li key={featureObj.id} className="flex items-start">
-                          <svg className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                          </svg>
-                          <span className="text-gray-300 text-sm">{featureObj.feature}</span>
-                        </li>
-                      ))}
-                    </ul>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="col-span-4 text-center py-10">
+                    <p className="text-gray-400">No valid services data available. Please check the console for details.</p>
                   </div>
-                </div>
-              ))}
+                )}
+              </div>
             </div>
           )}
 
