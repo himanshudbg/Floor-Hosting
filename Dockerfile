@@ -58,19 +58,29 @@ RUN echo 'server { \
     } \
     \
     location /admin/ { \
-        proxy_pass http://127.0.0.1:8000/admin/; \
+        proxy_pass http://127.0.0.1:8000; \
+        proxy_http_version 1.1; \
+        proxy_set_header Upgrade $http_upgrade; \
+        proxy_set_header Connection "upgrade"; \
         proxy_set_header Host $host; \
         proxy_set_header X-Real-IP $remote_addr; \
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; \
+        proxy_set_header X-Forwarded-Proto $scheme; \
     } \
     \
     location /api/ { \
-        proxy_pass http://127.0.0.1:8000/api/; \
+        proxy_pass http://127.0.0.1:8000; \
+        proxy_http_version 1.1; \
+        proxy_set_header Upgrade $http_upgrade; \
+        proxy_set_header Connection "upgrade"; \
         proxy_set_header Host $host; \
         proxy_set_header X-Real-IP $remote_addr; \
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; \
+        proxy_set_header X-Forwarded-Proto $scheme; \
     } \
     \
     location /static/ { \
-        proxy_pass http://127.0.0.1:8000/static/; \
+        alias /app/backend/static/; \
     } \
     \
     location / { \
@@ -80,12 +90,12 @@ RUN echo 'server { \
     } \
 }' > /etc/nginx/conf.d/default.conf
 
-# Create startup script
+# Create startup script with better process management
 RUN echo '#!/bin/bash\n\
 cd /app/backend\n\
 python manage.py collectstatic --noinput\n\
 python manage.py migrate --noinput\n\
-gunicorn floorhosting.wsgi:application --bind 127.0.0.1:8000 --daemon\n\
+gunicorn floorhosting.wsgi:application --bind 127.0.0.1:8000 --workers 3 --timeout 120 --daemon\n\
 nginx -g "daemon off;"\n\
 ' > /app/start.sh && chmod +x /app/start.sh
 
