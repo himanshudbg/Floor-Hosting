@@ -29,9 +29,12 @@ ENV DEBUG=False
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including MySQL client
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nginx \
+    default-libmysqlclient-dev \
+    pkg-config \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
@@ -57,19 +60,19 @@ RUN echo 'server { \
     } \
     \
     location /admin/ { \
-        proxy_pass http://localhost:8000/admin/; \
+        proxy_pass http://127.0.0.1:8000/admin/; \
         proxy_set_header Host $host; \
         proxy_set_header X-Real-IP $remote_addr; \
     } \
     \
     location /api/ { \
-        proxy_pass http://localhost:8000/api/; \
+        proxy_pass http://127.0.0.1:8000/api/; \
         proxy_set_header Host $host; \
         proxy_set_header X-Real-IP $remote_addr; \
     } \
     \
     location /static/ { \
-        proxy_pass http://localhost:8000/static/; \
+        proxy_pass http://127.0.0.1:8000/static/; \
     } \
     \
     location / { \
