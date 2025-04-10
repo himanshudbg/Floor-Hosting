@@ -21,15 +21,14 @@ RUN npm run build
 # Python backend stage
 FROM python:3.11-slim
 
-# Copy React build output
-COPY --from=frontend-build /app/dist /var/www/html
-
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV DEBUG=False
-ENV DATABASE_URL=sqlite:///backend/db.sqlite3
-ENV ALLOWED_HOSTS=*
+ENV DEBUG=True
+ENV DATABASE_URL=sqlite:///db.sqlite3
+
+# Set working directory
+WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -37,40 +36,64 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libapache2-mod-wsgi-py3 \
     && rm -rf /var/lib/apt/lists/*
 
-# Configure Apache
-RUN echo "<VirtualHost *:80>\n\
+# Copy requirements and install Python dependencies
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy Django backend
+COPY backend/ ./backend/
+
+# Configure Apache global settings
+RUN echo "ServerName localhost:8000" >> /etc/apache2/apache2.conf
+
+# Configure Apache for Django with proper permissions
+RUN echo '<VirtualHost *:80>\n\
+    ServerName localhost:8000\n\
+    ServerAdmin webmaster@localhost\n\
+    DocumentRoot /app\n\
+    \n\
+    WSGIDaemonProcess floorhosting python-path=/app/backend:/usr/local/lib/python3.11/site-packages\n\
+    WSGIProcessGroup floorhosting\n\
+    WSGIScriptAlias / /app/backend/floorhosting/wsgi.py\n\
     WSGIPassAuthorization On\n\
-    WSGIScriptAlias /api /backend/floorhosting/wsgi.py\n\
-    DocumentRoot /var/www/html\n\
-\n\
-    Alias /static/ /backend/staticfiles/\n\
-    Alias / /var/www/html/\n\
-\n\
-    <Directory /backend>\n\
+    \n\
+    <Directory /app/backend>\n\
+        Options Indexes FollowSymLinks\n\
+        AllowOverride All\n\
         Require all granted\n\
-        Options FollowSymLinks\n\
     </Directory>\n\
-\n\
-    <Directory /var/www/html>\n\
-        Options FollowSymLinks\n\
+    \n\
+    Alias /static/ /app/backend/staticfiles/\n\
+    <Directory /app/backend/staticfiles>\n\
+        Options Indexes FollowSymLinks\n\
         AllowOverride None\n\
         Require all granted\n\
     </Directory>\n\
-</VirtualHost>" > /etc/apache2/sites-available/000-default.conf
+    \n\
+    ErrorLog ${APACHE_LOG_DIR}/error.log\n\
+    CustomLog ${APACHE_LOG_DIR}/access.log combined\n\
+</VirtualHost>' > /etc/apache2/sites-available/000-default.conf
 
-# Copy backend and set permissions
-COPY backend/ /backend/
-RUN chown -R www-data:www-data /backend && \
-    chmod -R 755 /backend && \
-    mkdir -p /backend/staticfiles
+# Create required directories and set permissions
+RUN mkdir -p /app/backend/staticfiles && \
+    chown -R www-data:www-data /app && \
+    chmod -R 755 /app
 
-# Startup script
+# Create startup script with proper initialization
 RUN echo '#!/bin/bash\n\
-cd /backend\n\
-python manage.py migrate\n\
+cd /app/backend\n\
+python manage.py migrate --noinput\n\
 python manage.py collectstatic --noinput\n\
+chown -R www-data:www-data /app\n\
+chmod -R 755 /app/backend/staticfiles\n\
 apache2ctl -D FOREGROUND\n\
-' > /start.sh && chmod +x /start.sh
+' > /app/start.sh && chmod +x /app/start.sh
 
+# Enable required Apache modules
+RUN a2enmod wsgi
+
+# Expose port
 EXPOSE 80
-CMD ["/start.sh"]
+
+# Start services
+CMD ["/app/start.sh"]
