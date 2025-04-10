@@ -25,6 +25,7 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV DEBUG=False
+ENV DATABASE_URL=sqlite:///db.sqlite3
 
 # Set working directory
 WORKDIR /app

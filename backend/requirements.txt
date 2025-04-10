@@ -6,7 +6,6 @@ django-filter==25.1
 django-unfold==0.54.0
 djangorestframework==3.16.0
 filelock==3.16.1
-mysqlclient==2.2.7
 pillow==10.4.0
 platformdirs==4.3.6
 pyaes==1.6.1
