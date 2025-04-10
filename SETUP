@@ -1,0 +1,763 @@
+Skip to content
+DEV Community
+Find related posts...
+Powered by  Algolia
+Create Post
+51
+
+
+1
+Jump to Comments
+
+5
+Save
+
+Boost
+
+Cover image for In-Depth guide to deploying Django & React to a Linux Server using Apache and WSGI
+jan
+jan
+Posted on 21 Sept 2022
+
+
+13
+
+1
+In-Depth guide to deploying Django & React to a Linux Server using Apache and WSGI
+#
+django
+#
+react
+#
+apache
+This is an in-depth guide showing you how to deploy your Django/React application to a Linux server using Apache. In this specific example, the Linux server will be debian-based, running Ubuntu 22.04, so any commands you are seeing will be for a debian-based distribution.
+
+You can take any part of this post to deploy your app standalone (you can only take the Django part and deploy your full stack Django application and vice versa).
+
+At this time, we will be deploying a Django Rest Framework application using mod wsgi and a React app. Our database is going to be PostgreSQL and we will be using Apache as our web server.
+
+Anything that is contained in brackets [] means you need to enter your own information that is limited to you specifically.
+
+CONTENT
+0 - What you will need
+1 - Setting up Linux Server
+2 - Setting up PostgreSQL
+3.0 - Setting up Django project
+3.1 - Setting up Apache and WSGI
+3.2 - Apache/Django permissions
+4 - Deploying React
+5 - Finish
+6 - Final Words
+
+[0] - What you will need
+This is a list of requirements you should have ready and be comfortable with using.
+
+Linux Server (you can use any distribution, I am using Ubuntu)
+If you do not have a Linux server, you can get it from Linode That's what I use, they are quite cheap and easy to configure.
+Django Application
+React Application
+A little bit of PostgreSQL knowledge
+A little bit of Linux knowledge
+[1] - Setting up Linux Server
+At this point, I am assuming you have your Linux server up and running. First of all, SSH connect to your server. It should look something like:
+
+
+
+ssh root@your-ip
+# Example: ssh root@192.168.1.102
+
+
+Enter your root password, and you should be in.
+
+Before starting anything, make sure your packages are updated:
+
+
+
+apt-get update && apt-get upgrade
+
+
+We wanna set the host name of the new machine using:
+
+
+
+hostnamectl set-hostname [your hostname]
+# Example: hostnamectl set-hostname django
+
+
+We also need the set the hosts name in the hosts file:
+
+
+
+nano /etc/hosts
+
+
+Add your hostname:
+
+
+
+127.0.0.1         localhost
+[your server ip]  [your new hostname]
+# Example: 192.168.1.102    django
+
+
+The next step is creating a limited user. As the root user, you can execute any command. Even though that sounds good, you should always deploy using a limited user to avoid any issues.
+
+You can create a new user by running:
+
+
+
+adduser [your user]
+
+
+It's going to ask you to fill out some information. This is completely optional and you can just leave it blank. It really doesn't matter.
+
+We want this new user to be able to run root commands (sudo). We can do that by running:
+
+
+
+adduser [your user] sudo
+
+
+This will add that user to the sudo group and allow it to run root commands.
+
+Exit out of your server and login as the new user you created:
+
+
+
+exit
+ssh [your user]@[your server ip]
+# Example: ssh myuser@192.168.1.102 
+
+
+We want to install a package called ufw. It allows us to allow, deny and in general configure our server firewall very easily. This is a lot easier than using something like iptables.
+
+
+
+sudo apt-get install ufw
+
+
+Next, run these ufw commands. WARNING THE COMMANDS WE ARE ABOUT TO RUN CAN LOCK YOU OUT OF SSH-ING INTO YOUR SERVER, DO NOT MESS THIS UP
+
+
+
+sudo ufw default allow outgoing
+sudo ufw default deny incoming
+sudo ufw allow ssh
+sudo ufw allow 8000
+sudo ufw enable
+
+
+We are firstly going to be testing our Django app, so we are not allowing HTTP, but only the specific port 8000 on which our Django app is going to run on. If everything works correctly, we will allow the HTTP port (80).
+
+You can use this command to check what ports you have open:
+
+
+
+sudo ufw status
+
+
+[2] - Setting up PostgreSQL
+In this example, we are using PostgreSQL as our database. To install it, simply run
+
+
+
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+
+
+Make sure the service is started:
+
+
+
+sudo systemctl start postgresql.service
+
+
+To enter your PostgreSQL CLI:
+
+
+
+sudo -i -u postgres
+psql
+
+
+At this point, we will create a database, a database user with his password and grant him all privileges on that database. This requires 3 simple commands. In this example, my database name is going to be "coffee", my user is going to be "drinker" and my password is going to be "cup".
+
+
+ sql
+CREATE DATABASE coffee;
+CREATE USER drinker with encrypted password 'cup';
+GRANT ALL PRIVILEGES ON DATABASE coffee TO drinker;
+
+
+This created our database, our user and granted him all the privileges on that database. This completes the PostgreSQL setup. Make sure to remember the database name, user and password, as we will be needing it later.
+
+[3.0] - Setting up Django Project
+Firstly, we have to install a couple of things
+
+
+
+sudo apt-get install python3-pip
+sudo apt-get install python3-venv
+
+
+This will install Python version 3 if it hasn't already been installed and allow us to create a virtual environment for our Django application.
+
+When entering your server, you are most likely located in your user home directory. To make sure, you can check your working directory with
+
+
+
+pwd
+# This should return /home/[user]
+
+
+If everything is correct and you are inside your user home directory, you can clone your Django application from any VCS.
+
+
+
+git clone https://gitlab.com/username/django-project.git
+
+
+Enter the cloned directory. Next, we will create a virtual environment inside our directory.
+
+
+
+python3 -m venv venv
+
+
+Activate the environment:
+
+
+
+source venv/bin/activate
+
+
+After activating the environment, we are going to install our packages. As such a skilled software developer, I am assuming you have your requirements in a requirements.txt file. Install them.
+
+
+
+pip install -r requirements.txt
+
+
+Now we need to mess with the settings.py of your Django application to get it ready for deployment. Find your database configuration and change it to the database information we set up earlier, it should look something like this
+
+
+ python
+DATABASES = {
+  'default': {
+    'ENGINE': 'django.db.backends.postgresql',
+    'NAME': 'coffee',
+    'USER': 'drinker',
+    'PASSWORD': 'cup',
+    'HOST': 'localhost'
+    'PORT': ''
+  }
+}
+
+
+Ideally, you will have all these information in a seperate .env file.
+Next, find your ALLOWED_HOSTS and edit them with the ip address of your server, it should look like this:
+
+
+ python
+ALLOWED_HOSTS = [your server ip]
+# Example: ALLOWED_HOSTS = ['192.168.1.102']
+
+
+Don't forget to set your Debug to False if this is going to production Leaving Debug to True will give too much information in case an error occurs. For security reasons, we do not want this.
+Next up, find your static and media URL-s and edit them, they should look like this:
+
+
+ python
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+This is an important step because it will allow us to serve static files for things like swagger and access our media folder.
+This should be it for the settings configuration, at least for now. Return to your app directory and with the virtual environment activated, we are going to run a couple of commands.
+
+
+
+python manage.py makemigrations
+python manage.py migrate
+python manage.py collectstatic
+
+
+These commands will create the necessary migrations, create the tables in our PostgreSQL database and collect the static needed in the directory we just defined in our settings file.
+
+Finally, we can test if we did everything correctly. We opened up port 8000 at the beginning of this guide, so let's run our server.
+
+
+
+python manage.py runserver 0.0.0.0:8000
+
+
+If you did everything correctly and go to your server IP address following with port 8000, you should see your Django application.
+
+Django Default ScreenHooray!
+
+[3.1] - Setting up Apache and WSGI
+Now of course, we can't have our Django project just running with the runserver command. We want it to be served on our IP address and later domain 24/7 without needing to start anything. This is where Apache and WSGI come into play. Let's install them.
+
+
+
+sudo apt-get install apache2
+sudo apt-get install libapache2-mod-wsgi-py3
+
+
+The first step to configuring Apache is happening in the apache2 sites directory. This is where the Apache configuration files are. Head into that directory:
+
+
+
+cd /etc/apache2/sites-available
+
+
+In this directory, make a new configuration file, let's call it django-project.
+
+
+
+sudo nano django-project.conf
+
+
+This is the most important step to setting up your WSGI
+In this configuration file we will configure our virtual host. In here we will declare on what port we are going to run our Django application on, the directories it should serve and the WSGI Daemon process that is going to run our Django application. Start off by adding the virtual host.
+
+
+
+<VirtualHost *:80>
+
+
+</VirtualHost>
+
+
+This means that on your server IP address (*), your Django project will run on port 80. This is the default HTTP port that opens up when you go to your IP address. If you are only deploying Django without React, leave it at 80. If you are going to deploy a React app to interact with Django, set the port to be 8000.
+
+This virtual host example is going to assume the user is named djangouser, the repository you cloned is named django-project and your project inside the repository is named django-project.
+Inside your virtual host tags, add the ServerAdmin and DocumentRoot. These are optional steps.
+
+
+
+<VirtualHost *:80>
+  ServerAdmin webmaster@localhost
+  DocumentRoot /home/djangouser/django-project
+
+</VirtualHost>
+
+
+Add the log directory locations:
+
+
+
+<VirtualHost *:80>
+  ServerAdmin webmaster@localhost
+  DocumentRoot /home/djangouser/django-project
+
+  ErrorLog ${APACHE_LOG_DIR}/error.log
+  CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+</VirtualHost>
+
+
+Next up, we are going to use an alias to tell Apache to map requests starting with static to our Django application static folder.
+
+
+
+<VirtualHost *:80>
+  ServerAdmin webmaster@localhost
+  DocumentRoot /home/djangouser/django-project
+
+  ErrorLog ${APACHE_LOG_DIR}/error.log
+  CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+  Alias /static /home/djangouser/django-project/static
+  <Directory /home/djangouser/django-project/static>
+    Require all granted
+  </Directory>
+
+</VirtualHost>
+
+
+We are going to do the same thing with our media folder.
+
+
+
+<VirtualHost *:80>
+  ServerAdmin webmaster@localhost
+  DocumentRoot /home/djangouser/django-project
+
+  ErrorLog ${APACHE_LOG_DIR}/error.log
+  CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+  Alias /static /home/djangouser/django-project/static
+  <Directory /home/djangouser/django-project/static>
+    Require all granted
+  </Directory>
+
+  Alias /media/ home/djangouser/django-project/media
+  <Directory /home/djangouser/django-project/media>
+    Require all granted
+  </Directory>
+
+</VirtualHost>
+
+
+Next, we will grant access to the wsgi.py inside our Django project. This makes sure Apache can access our wsgi.py file which is how our application talks to Apache.
+
+
+
+<VirtualHost *:80>
+  ServerAdmin webmaster@localhost
+  DocumentRoot /home/djangouser/django-project
+
+  ErrorLog ${APACHE_LOG_DIR}/error.log
+  CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+  Alias /static /home/djangouser/django-project/static
+  <Directory /home/djangouser/django-project/static>
+    Require all granted
+  </Directory>
+
+  Alias /media/ home/djangouser/django-project/media
+  <Directory /home/djangouser/django-project/media>
+    Require all granted
+  </Directory>
+
+  <Directory /home/djangouser/django-project/django-project>
+    <Files wsgi.py>
+      Require all granted
+    </Files>
+  </Directory>
+
+</VirtualHost>
+
+
+Next, we are going set up the Daemon mode.
+
+
+
+<VirtualHost *:80>
+  ServerAdmin webmaster@localhost
+  DocumentRoot /home/djangouser/django-project
+
+  ErrorLog ${APACHE_LOG_DIR}/error.log
+  CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+  Alias /static /home/djangouser/django-project/static
+  <Directory /home/djangouser/django-project/static>
+    Require all granted
+  </Directory>
+
+  Alias /media/ home/djangouser/django-project/media
+  <Directory /home/djangouser/django-project/media>
+    Require all granted
+  </Directory>
+
+  <Directory /home/djangouser/django-project/django-project>
+    <Files wsgi.py>
+      Require all granted
+    </Files>
+  </Directory>
+
+  WSGIScriptAlias / /home/djangouser/django-project/django-project/wsgi.py
+  WSGIDaemonProcess django_app python-path=/home/djangouser/django-project python-home=/home/djangouser/django-project/venv
+  WSGIProcessGroup django_app
+
+</VirtualHost>
+
+
+This finished our Virtual Host configuration. Exit out of nano. Now, we have to enable that site through Apache. To do that:
+
+
+
+sudo a2ensite [your configuration file]
+# Example: sudo a2ensite django-project.conf
+
+
+A default site comes with Apache, we don't need it so let's disable it:
+
+
+
+sudo a2dissite 000-default.conf
+
+
+[3.2] - Apache/Django permissions
+To make sure Apache and Django can easily communicate, access media folders, etc.. we have to set up proper permissions. Let's give Apache the ownership of the Django project and the media folder.
+
+
+
+sudo chown :www-data django-project
+sudo chmod 775 django-project
+sudo chown -R :www-data django-project/media
+sudo chmod -R 775 django-project/media
+
+
+If you are running only the Django application and you are running it on port 80, delete the allow rule of port 8000 and allow HTTP. If you are deploying Django with React, just allow the http/tcp, but don't remove port 8000.
+
+
+
+sudo ufw delete allow 8000
+sudo ufw allow http/tcp
+
+
+Lastly, restart apache.
+
+
+
+sudo systemctl restart apache2
+
+
+If you have followed everything correctly up to this point, you should have Apache web server set up, PostgreSQL set up with a database and user connected to your Django and your Django project set up and served on port 80 or 8000. If you are only deploying Django, this is the end of the guide for you. You have successfully deployed your Django project on a Linux server. If you are deploying React alongside Django, continue reading.
+
+[4] - Deploying React
+Congratulations, you have deployed your Django application. However, your front-end is missing. Luckily, deployment of a React application is much easier than Django. Move back to your home directory and clone your React application. (Blank cd will move you to your home directory)
+
+
+
+cd
+git clone https://gitlab.com/username/react-project.git
+
+
+Before setting up the React project, we're gonna be needing Node/NPM. If they aren't already installed, you can run:
+
+
+
+sudo apt update
+sudo apt install nodejs
+sudo apt install npm
+
+
+After a successful installation, move into your React project directory and install your packages.
+
+
+ javascript
+npm install
+
+
+Next, we will create a build version for our React project by running the following command:
+
+
+ javascript
+npm run build
+
+
+Before creating a virtual host that will serve our React application, we have to create a config file that will allow routes other than the index. This file is created in the build directory.
+
+
+
+cd react-project/build
+sudo nano .htaccess
+
+
+Edit the file to look like this:
+
+
+
+RewriteEngine On
+RewriteBase /
+RewriteRule ^index\.html$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-l
+RewriteRule . /index.html [L]
+
+
+After saving the file, let's make sure Apache can use the rewrite engine mod.
+
+
+
+sudo a2enmod rewrite
+
+
+We need to restart our apache after enabling a mod:
+
+
+
+sudo systemctl restart apache2
+
+
+Next up, we have to configure the virtual host, the process is similar as with Django, but easier. Create a new configuration file in the sites available directory.
+
+
+
+sudo nano /etc/apache2/sites-available/react-project.conf
+
+
+Make sure the virtual host looks like the following, exchanging the example names with yours:
+
+
+
+<VirtualHost *:80>
+  ServerName 192.168.1.102 [enter your server ip here]
+  DocumentRoot /home/djangouser/react-project/build
+
+  ErrorLog /home/djangouser/react-project/log/error.log
+  CustomLog /home/djangouser/react-project/log/requests.log combined
+
+  <Directory /home/djangouser/react-project/build>
+    AllowOverride all
+    Require all granted
+    Options FollowSymlinks
+  </Directory>
+
+</VirtualHost>
+
+
+This will tell apache to serve our React project on port 80, while our Django backend is serving on port 8000. Like the Django project, enable the site and restart apache:
+
+
+
+sudo a2ensite react-project.conf
+sudo systemctl restart apache2
+
+
+Let's give apache ownership of our React project directory
+
+
+
+cd
+sudo chown :www-data react-project
+sudo chmod 775 react-project
+
+
+To ensure our back-end and front-end communicate without issues, let's edit our apache configuration.
+
+
+
+sudo nano /etc/apache2/apache2.conf
+
+
+In here we have to make a few changes, first, add these lines:
+
+
+
+<Directory /home/djangouser>
+  Options Indexes FollowSymLinks
+  AllowOverride All
+  Require all granted
+</Directory>
+
+
+Now scroll to the bottom of the file and add the last thing needed in the apache configuration file:
+
+
+
+WSGIPassAuthorization On
+
+
+To finish off, restart apache one more time:
+
+
+
+sudo systemctl restart apache2
+
+
+[5] - Finish
+Congratulations! You have made it to the end. Hopefully everything went smoothly and you have either a Django application deployed or even a React + Django application deployed. I will leave the connecting of the two up to you, I am sure you are skilled enough for that.
+
+[6] - Final words
+Thank you for reading my guide. I hope it has helped you entirely deploy your applications from scratch or even help you with a part you were stuck on. Deploying applications is not an easy task, especially without any prior knowledge, which compelled me to write this in depth guide explaining what needs to be done and why. Perhaps some time in the future, I create a part 2 to this guide, connecting these two applications to actual domains and adding SSL certificates.
+
+If you have any questions or you feel like I made a mistake or left something out, feel free to contact me or leave a comment. I will correct it with an explanation. :)
+
+Top comments (1)
+
+Subscribe
+pic
+Add to the discussion
+ 
+ 
+chazfg profile image
+chazfg
+•
+11 Jan 23 • Edited on 11 Jan
+
+Thank you so much. This is really comprehensive. Took me two days but it's running!
+
+
+1
+ like
+Like
+
+Reply
+Code of Conduct • Report abuse
+profile
+Timescale
+Promoted
+
+Image of Timescale
+
+📊 Benchmarking Databases for Real-Time Analytics Applications
+Benchmarking Timescale, Clickhouse, Postgres, MySQL, MongoDB, and DuckDB for real-time analytics. Introducing RTABench 🚀
+
+Read full post →
+
+Read next
+mikeyoung44 profile image
+Breakthrough Method Makes AI Training More Stable and Efficient with Smart Gradient Control
+Mike Young - Apr 5
+
+mikeyoung44 profile image
+LIMA: AI Vision Model Learns from 7.2B Images Without Language, Beats CLIP with 8x Fewer Parameters
+Mike Young - Apr 5
+
+jpoehnelt profile image
+Sneak peek of RovioCon, a premium invite-only event 🤩
+Justin Poehnelt - Apr 5
+
+jpoehnelt profile image
+Developer Spotlight with Zack Akil - Senior ML Engineer & Developer Advocate
+Justin Poehnelt - Apr 5
+
+
+jan
+Follow
+software engineer
+Joined
+15 Sept 2022
+Trending on DEV Community 
+Ben Halpern profile image
+Meme Monday
+#discuss #jokes #watercooler
+Jess Lee profile image
+What was your win this week?
+#weeklyretro #discuss
+abdelrahman seada profile image
+# 🗃️ Dolab — A Lightweight Data-Fetching Hook with Zustand Superpowers ⚡
+#react #typescript #zustand #opensource
+profile
+AWS
+Promoted
+
+AWS Q Developer image
+
+Your AI Code Assistant
+Ask anything about your entire project, code and get answers and even architecture diagrams. Built to handle large projects, Amazon Q Developer works alongside you from idea to production code.
+
+Start free in your IDE
+
+Thank you to our Diamond Sponsor Neon for supporting our community.
+
+DEV Community — A constructive and inclusive social network for software developers. With you every step of your journey.
+
+Home
+DEV++
+Podcasts
+Videos
+Tags
+DEV Help
+Forem Shop
+Advertise on DEV
+DEV Challenges
+DEV Showcase
+About
+Contact
+Free Postgres Database
+Software comparisons
+Code of Conduct
+Privacy Policy
+Terms of use
+Built on Forem — the open source software that powers DEV and other inclusive communities.
+
+Made with love and Ruby on Rails. DEV Community © 2016 - 2025.

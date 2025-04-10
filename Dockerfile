@@ -5,15 +5,15 @@ FROM node:22-alpine AS frontend-build
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY frontend/package*.json ./
 
 # Install dependencies
 RUN npm install
 
 # Copy frontend files
-COPY index.html vite.config.js eslint.config.js ./
-COPY src/ ./src/
-COPY public/ ./public/
+COPY frontend/index.html frontend/vite.config.js frontend/eslint.config.js ./
+COPY frontend/src/ ./src/
+COPY frontend/public/ ./public/
 
 # Build the React application
 RUN npm run build
@@ -32,7 +32,8 @@ WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    nginx \
+    apache2 \
+    libapache2-mod-wsgi-py3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
@@ -42,41 +43,54 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy Django backend
 COPY backend/ ./backend/
 
-# Configure nginx for API only
-RUN echo 'server { \
-    listen 80 default_server; \
-    server_name localhost; \
-    \
-    location /admin/ { \
-        proxy_pass http://127.0.0.1:8000; \
-        proxy_http_version 1.1; \
-        proxy_set_header Upgrade $http_upgrade; \
-        proxy_set_header Connection "upgrade"; \
-        proxy_set_header Host $host; \
-        proxy_set_header X-Real-IP $remote_addr; \
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; \
-        proxy_set_header X-Forwarded-Proto $scheme; \
-    } \
-    \
-    location /api/ { \
-        proxy_pass http://127.0.0.1:8000; \
-        proxy_http_version 1.1; \
-        proxy_set_header Upgrade $http_upgrade; \
-        proxy_set_header Connection "upgrade"; \
-        proxy_set_header Host $host; \
-        proxy_set_header X-Real-IP $remote_addr; \
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; \
-        proxy_set_header X-Forwarded-Proto $scheme; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
+# Configure Apache global settings
+RUN echo "ServerName localhost:8000" >> /etc/apache2/apache2.conf
 
-# Create startup script
+# Configure Apache for Django with proper permissions
+RUN echo '<VirtualHost *:80>\n\
+    ServerName localhost:8000\n\
+    ServerAdmin webmaster@localhost\n\
+    DocumentRoot /app\n\
+    \n\
+    WSGIDaemonProcess floorhosting python-path=/app/backend:/usr/local/lib/python3.11/site-packages\n\
+    WSGIProcessGroup floorhosting\n\
+    WSGIScriptAlias / /app/backend/floorhosting/wsgi.py\n\
+    WSGIPassAuthorization On\n\
+    \n\
+    <Directory /app/backend>\n\
+        Options Indexes FollowSymLinks\n\
+        AllowOverride All\n\
+        Require all granted\n\
+    </Directory>\n\
+    \n\
+    Alias /static/ /app/backend/staticfiles/\n\
+    <Directory /app/backend/staticfiles>\n\
+        Options Indexes FollowSymLinks\n\
+        AllowOverride None\n\
+        Require all granted\n\
+    </Directory>\n\
+    \n\
+    ErrorLog ${APACHE_LOG_DIR}/error.log\n\
+    CustomLog ${APACHE_LOG_DIR}/access.log combined\n\
+</VirtualHost>' > /etc/apache2/sites-available/000-default.conf
+
+# Create required directories and set permissions
+RUN mkdir -p /app/backend/staticfiles && \
+    chown -R www-data:www-data /app && \
+    chmod -R 755 /app
+
+# Create startup script with proper initialization
 RUN echo '#!/bin/bash\n\
 cd /app/backend\n\
 python manage.py migrate --noinput\n\
-gunicorn floorhosting.wsgi:application --bind 127.0.0.1:8000 --workers 3 --timeout 120 --daemon\n\
-nginx -g "daemon off;"\n\
+python manage.py collectstatic --noinput\n\
+chown -R www-data:www-data /app\n\
+chmod -R 755 /app/backend/staticfiles\n\
+apache2ctl -D FOREGROUND\n\
 ' > /app/start.sh && chmod +x /app/start.sh
+
+# Enable required Apache modules
+RUN a2enmod wsgi
 
 # Expose port
 EXPOSE 80
