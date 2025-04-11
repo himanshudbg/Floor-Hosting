@@ -41,14 +41,12 @@ RUN echo '#!/bin/bash\n\
 cd /code/backend\n\
 python manage.py migrate --noinput\n\
 python manage.py collectstatic --noinput\n\
-# Update Apache ports\n\
-echo "Listen 5173" > /etc/apache2/ports.conf\n\
 apache2ctl -D FOREGROUND' > /code/entrypoint.sh
 
 RUN chmod +x /code/entrypoint.sh
 
 # Configure Apache
-RUN echo '<VirtualHost *:5173>\n\
+RUN echo '<VirtualHost *:80>\n\
     ServerName floor.kleverup.me\n\
     DocumentRoot /code/backend/build\n\
     \n\
@@ -80,7 +78,5 @@ RUN echo '<VirtualHost *:5173>\n\
     \n\
     WSGIPassAuthorization On\n\
 </VirtualHost>' > /etc/apache2/sites-available/000-default.conf
-
-EXPOSE 5173
 
 CMD ["/code/entrypoint.sh"]
