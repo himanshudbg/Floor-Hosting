@@ -41,13 +41,15 @@ RUN echo '#!/bin/bash\n\
 cd /code/backend\n\
 python manage.py migrate --noinput\n\
 python manage.py collectstatic --noinput\n\
+# Update Apache ports\n\
+echo "Listen 5173" > /etc/apache2/ports.conf\n\
 apache2ctl -D FOREGROUND' > /code/entrypoint.sh
 
 RUN chmod +x /code/entrypoint.sh
 
 # Configure Apache
 RUN echo '<VirtualHost *:5173>\n\
-    ServerAdmin webmaster@localhost\n\
+    ServerName floor.kleverup.me\n\
     DocumentRoot /code/backend/build\n\
     \n\
     ErrorLog ${APACHE_LOG_DIR}/error.log\n\
@@ -66,7 +68,6 @@ RUN echo '<VirtualHost *:5173>\n\
         RewriteRule . /index.html [L]\n\
     </Directory>\n\
     \n\
-    # Django API configuration\n\
     WSGIScriptAlias /api /code/backend/floorhosting/wsgi.py\n\
     WSGIDaemonProcess floorhosting python-path=/code/backend python-home=/code\n\
     WSGIProcessGroup floorhosting\n\
