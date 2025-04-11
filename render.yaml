@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: rollerite
+    env: python
+    buildCommand: |
+      pip install poetry
+      poetry install
+      cd frontend && npm install && npm run build
+      cd ../backend && python manage.py migrate
+    startCommand: cd backend && gunicorn floorhosting.wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: DJANGO_DEBUG
+        value: true
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
