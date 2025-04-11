@@ -11,11 +11,13 @@ RUN apt-get update && apt-get install -y \
     libapache2-mod-wsgi-py3 \
     nodejs \
     npm \
+    ssl-cert \
     && rm -rf /var/lib/apt/lists/*
 
 # Enable Apache modules
 RUN a2enmod rewrite
 RUN a2enmod wsgi
+RUN a2enmod ssl
 
 WORKDIR /code
 
@@ -40,12 +42,14 @@ WORKDIR /code
 RUN echo '#!/bin/bash\n\
 cd /code/backend\n\
 python manage.py migrate --noinput\n\
+# Change Apache port from 80 to 8080\n\
+sed -i "s/Listen 80/Listen 8080/" /etc/apache2/ports.conf\n\
 apache2ctl -D FOREGROUND' > /code/entrypoint.sh
 
 RUN chmod +x /code/entrypoint.sh
 
-# Configure Apache
-RUN echo '<VirtualHost *:80>\n\
+# Configure Apache - change VirtualHost from *:80 to *:8080
+RUN echo '<VirtualHost *:8080>\n\
     ServerAdmin webmaster@localhost\n\
     DocumentRoot /code/backend/build\n\
     \n\
@@ -79,6 +83,7 @@ RUN echo '<VirtualHost *:80>\n\
     WSGIPassAuthorization On\n\
 </VirtualHost>' > /etc/apache2/sites-available/000-default.conf
 
-EXPOSE 8000
+# Expose the new port
+EXPOSE 8080
 
 CMD ["/code/entrypoint.sh"]

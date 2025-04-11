@@ -18,7 +18,7 @@ const Services = () => {
   const [subscriptionLength, setSubscriptionLength] = useState(48);
   
   // Get API URL from environment variables
-  const API_BASE_URL = 'http://localhost:8000/api';
+  const API_BASE_URL = 'http://localhost:80/api';
   
   // Fetch services from Django backend
   useEffect(() => {
