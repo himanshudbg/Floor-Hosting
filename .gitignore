@@ -54,7 +54,6 @@ env.bak/
 venv.bak/
 
 # Django Database
-*.sqlite3
 *.sqlite3-journal
 
 # Django Media and Static files
