@@ -67,7 +67,9 @@ ROOT_URLCONF = 'floorhosting.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'frontend/dist')],
+        'DIRS': [
+            os.path.join(BASE_DIR, '../backend/dist'),  # Add this line
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -78,6 +80,11 @@ TEMPLATES = [
             ],
         },
     },
+]
+
+STATIC_URL = '/assets/'  
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, '../backend/dist/assets'),
 ]
 
 WSGI_APPLICATION = 'floorhosting.wsgi.application'
@@ -117,13 +124,6 @@ USE_TZ = True
 
 # CORS settings: Allow all origins for development (restrict this in production)
 CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True') == 'True'
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'frontend/dist/static'),
-]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
