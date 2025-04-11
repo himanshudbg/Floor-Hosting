@@ -13,3 +13,4 @@ npm run build
 # Build backend
 cd ../backend
 python manage.py migrate
+cd backend && python -m gunicorn floorhosting.asgi:application -k uvicorn.workers.UvicornWorker
