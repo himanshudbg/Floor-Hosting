@@ -2,9 +2,8 @@
 # Exit on error
 set -o errexit
 
-# Install dependencies
-pip install poetry
-poetry install
+# Install dependencies from requirements.txt instead of poetry
+pip install -r backend/requirements.txt
 
 # Build frontend
 cd frontend
