@@ -1,55 +1,54 @@
+# Frontend build stage
+FROM node:22-alpine AS frontend-build
+
+WORKDIR /app
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/ .
+RUN npm run build
+
+# Main stage
 FROM python:3.12-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies including Apache and Node.js
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     gcc \
     apache2 \
     libapache2-mod-wsgi-py3 \
-    nodejs \
-    npm \
-    ssl-cert \
     && rm -rf /var/lib/apt/lists/*
 
 # Enable Apache modules
 RUN a2enmod rewrite
 RUN a2enmod wsgi
-RUN a2enmod ssl
 
 WORKDIR /code
 
-# Install Python dependencies with Poetry
+# Install Python dependencies
 RUN pip install poetry
 COPY pyproject.toml poetry.lock* /code/
 RUN poetry config virtualenvs.create false
 RUN poetry install --only main --no-root --no-interaction
 
-# Copy project files
-COPY . /code/
+# Copy backend files
+COPY backend/ /code/backend/
 
-# Build frontend
-WORKDIR /code/frontend
-RUN npm install
-RUN npm run build
-
-# Return to main directory
-WORKDIR /code
+# Copy built frontend from build stage
+COPY --from=frontend-build /app/dist /code/backend/build
 
 # Create entrypoint script
 RUN echo '#!/bin/bash\n\
 cd /code/backend\n\
 python manage.py migrate --noinput\n\
-# Change Apache port from 80 to 8080\n\
-sed -i "s/Listen 80/Listen 8080/" /etc/apache2/ports.conf\n\
 apache2ctl -D FOREGROUND' > /code/entrypoint.sh
 
 RUN chmod +x /code/entrypoint.sh
 
-# Configure Apache - change VirtualHost from *:80 to *:8080
-RUN echo '<VirtualHost *:8080>\n\
+# Configure Apache
+RUN echo '<VirtualHost *:80>\n\
     ServerAdmin webmaster@localhost\n\
     DocumentRoot /code/backend/build\n\
     \n\
@@ -69,7 +68,6 @@ RUN echo '<VirtualHost *:8080>\n\
         RewriteRule . /index.html [L]\n\
     </Directory>\n\
     \n\
-    # Django API configuration\n\
     WSGIScriptAlias /api /code/backend/floorhosting/wsgi.py\n\
     WSGIDaemonProcess floorhosting python-path=/code/backend python-home=/code\n\
     WSGIProcessGroup floorhosting\n\
@@ -83,7 +81,6 @@ RUN echo '<VirtualHost *:8080>\n\
     WSGIPassAuthorization On\n\
 </VirtualHost>' > /etc/apache2/sites-available/000-default.conf
 
-# Expose the new port
-EXPOSE 8080
+EXPOSE 80
 
 CMD ["/code/entrypoint.sh"]
