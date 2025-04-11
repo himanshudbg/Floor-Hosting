@@ -1,1 +1,1 @@
-web: cd backend && gunicorn youbuy.wsgi:application --bind 0.0.0.0:$PORT
+web: cd backend && gunicorn floorhosting.wsgi:application --bind 0.0.0.0:$PORT
