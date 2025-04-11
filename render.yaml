@@ -1,17 +1,16 @@
 services:
   - type: web
-    name: rollerite
-    env: python
-    buildCommand: |
-      pip install poetry
-      poetry install
-      cd frontend && npm install && npm run build
-      cd ../backend && python manage.py migrate
-    startCommand: cd backend && gunicorn floorhosting.wsgi:application
+    plan: free
+    name: floorhosting
+    runtime: python
+    buildCommand: "./build.sh"
+    startCommand: cd backend && python -m gunicorn floorhosting.asgi:application -k uvicorn.workers.UvicornWorker
     envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: WEB_CONCURRENCY
+        value: 4
       - key: PYTHON_VERSION
         value: 3.12.0
       - key: DJANGO_DEBUG
         value: true
-      - key: DJANGO_SECRET_KEY
-        generateValue: true
