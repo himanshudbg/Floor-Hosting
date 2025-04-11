@@ -79,6 +79,6 @@ RUN echo '<VirtualHost *:80>\n\
     WSGIPassAuthorization On\n\
 </VirtualHost>' > /etc/apache2/sites-available/000-default.conf
 
-EXPOSE 80
+EXPOSE 8000
 
 CMD ["/code/entrypoint.sh"]

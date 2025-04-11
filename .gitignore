@@ -60,7 +60,6 @@ venv.bak/
 # Django Media and Static files
 media/
 static/
-staticfiles/
 
 # Django Local Settings
 local_settings.py
