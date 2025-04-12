@@ -43,6 +43,7 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+staticfiles/
 
 # Django Environment
 .venv
