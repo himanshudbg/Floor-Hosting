@@ -26,6 +26,5 @@ urlpatterns = [
     path('', TemplateView.as_view(template_name='index.html')),
 ]
 
-# Add static file serving for development
-if settings.DEBUG:
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+# Serve static files in all environments, not just DEBUG
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

@@ -62,9 +62,11 @@ TEMPLATES = [
 ]
 
 # Keep assets URL as is
+# Static files configuration
 STATIC_URL = '/assets/'  
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, '../backend/build/assets'),  # Point to assets folder
+    os.path.join(BASE_DIR, '../backend/build/assets'),  # Point directly to assets folder
 ]
 
 REST_FRAMEWORK = {
@@ -76,9 +78,11 @@ REST_FRAMEWORK = {
     ],
 }
 
+# Add whitenoise middleware for static file serving in production
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # corsheaders first
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Add this after security middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
