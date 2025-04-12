@@ -21,6 +21,7 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 # Application definition
+# Add django.contrib.staticfiles to INSTALLED_APPS
 INSTALLED_APPS = [
     "unfold",  # before django.contrib.admin
     "unfold.contrib.filters",  # optional, if special filters are needed
@@ -34,42 +35,19 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'django.contrib.staticfiles',  # Add this line
     'rest_framework',
     'corsheaders',
     'django_filters',
     'gameservers',
 ]
 
-# REST Framework configuration
-REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
-    ],
-    'DEFAULT_FILTER_BACKENDS': [
-        'django_filters.rest_framework.DjangoFilterBackend',
-    ],
-}
-
-MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # corsheaders first
-    'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-]
-
-ROOT_URLCONF = 'floorhosting.urls'
-
 # Templates configuration
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            os.path.join(BASE_DIR, '../backend/dist'),  # Add this line
+            os.path.join(BASE_DIR, '../backend/build'),  # Point to build folder
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -83,9 +61,33 @@ TEMPLATES = [
     },
 ]
 
+# Keep assets URL as is
 STATIC_URL = '/assets/'  
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, '../backend/build/assets'),  # Point to assets folder
+]
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+    ],
+}
+
+MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # corsheaders first
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+ROOT_URLCONF = 'floorhosting.urls'
 
 WSGI_APPLICATION = 'floorhosting.wsgi.application'
 
