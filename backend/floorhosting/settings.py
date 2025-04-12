@@ -20,6 +20,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+APPEND_SLASH = True
+
 # Application definition
 # Add django.contrib.staticfiles to INSTALLED_APPS
 INSTALLED_APPS = [
@@ -80,9 +82,10 @@ REST_FRAMEWORK = {
 
 # Add whitenoise middleware for static file serving in production
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # corsheaders first
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Add this after security middleware
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'floorhosting.middleware.AdminRedirectMiddleware',  # Add this line
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
