@@ -65,8 +65,14 @@ TEMPLATES = [
 
 # Keep assets URL as is
 # Static files configuration
-STATIC_URL = '/assets/'  
+STATIC_URL = '/assets/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'build'),
+]
+
+# Add whitenoise configuration
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, '../backend/build/assets'),  # Point directly to assets folder
 ]
