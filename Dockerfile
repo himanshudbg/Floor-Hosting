@@ -22,6 +22,7 @@ COPY --from=builder /app/venv venv
 COPY backend backend
 
 WORKDIR /app/backend
+RUN python manage.py collectstatic --noinput
 
 EXPOSE ${PORT}
 
