@@ -97,6 +97,16 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
+CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True') == 'True'
+
+# CORS and CSRF Settings
+CORS_ALLOWED_ORIGINS = [
+    "https://parallel-mildrid-floorhost-78cc1d3d.koyeb.app",
+    "http://parallel-mildrid-floorhost-78cc1d3d.koyeb.app",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
 # Allow all origins for CSRF based on CORS_ALLOW_ALL_ORIGINS from .env
 if CORS_ALLOW_ALL_ORIGINS:
     CSRF_TRUSTED_ORIGINS = ["https://*", "http://*"]
