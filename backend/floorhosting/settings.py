@@ -97,8 +97,14 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
-# Allow all origins for CSRF
-CSRF_TRUSTED_ORIGINS = ["https://*", "http://*"]
+# Allow all origins for CSRF based on CORS_ALLOW_ALL_ORIGINS from .env
+if CORS_ALLOW_ALL_ORIGINS:
+    CSRF_TRUSTED_ORIGINS = ["https://*", "http://*"]
+else:
+    CSRF_TRUSTED_ORIGINS = [
+        "https://parallel-mildrid-floorhost-78cc1d3d.koyeb.app",
+        "http://parallel-mildrid-floorhost-78cc1d3d.koyeb.app",
+    ]
 
 # CSRF_TRUSTED_ORIGINS = [
 #     "https://parallel-mildrid-floorhost-78cc1d3d.koyeb.app",
