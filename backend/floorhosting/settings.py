@@ -97,10 +97,13 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
-CSRF_TRUSTED_ORIGINS = [
-    "https://parallel-mildrid-floorhost-78cc1d3d.koyeb.app",
-    "http://parallel-mildrid-floorhost-78cc1d3d.koyeb.app",
-]
+# Allow all origins for CSRF
+CSRF_TRUSTED_ORIGINS = ["https://*", "http://*"]
+
+# CSRF_TRUSTED_ORIGINS = [
+#     "https://parallel-mildrid-floorhost-78cc1d3d.koyeb.app",
+#     "http://parallel-mildrid-floorhost-78cc1d3d.koyeb.app",
+# ]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
