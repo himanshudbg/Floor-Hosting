@@ -22,10 +22,6 @@ COPY --from=builder /app/venv venv
 COPY backend backend
 COPY frontend frontend
 
-WORKDIR /app/frontend
-RUN npm install
-RUN npm run build
-
 WORKDIR /app/backend
 RUN python manage.py collectstatic --noinput
 
