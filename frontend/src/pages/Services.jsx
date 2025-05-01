@@ -19,6 +19,7 @@ const Services = () => {
   
   
   const API_BASE_URL = `${window.location.origin}/api`;
+  //test
   
   // Fetch services from Django backend
   useEffect(() => {
